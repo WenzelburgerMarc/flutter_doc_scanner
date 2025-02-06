@@ -25,7 +25,7 @@ class FlutterDocScannerWeb extends FlutterDocScannerPlatform {
   }
 
   @override
-  Future<String?> getScanDocuments([int page = 5]) async {
+  Future<String?> getScanDocuments([int page = 5, String locale = 'en']) async {
     final data = html.window.navigator.userAgent;
     return data;
   }

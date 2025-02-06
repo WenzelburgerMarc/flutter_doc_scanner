@@ -11,7 +11,8 @@ class MockFlutterDocScannerPlatform
   Future<String?> getPlatformVersion() => Future.value('42');
 
   @override
-  Future<String?> getScanDocuments([int page = 5]) => Future.value();
+  Future<String?> getScanDocuments([int page = 5, String locale = 'en']) =>
+      Future.value();
 
   @override
   Future<String?> getScannedDocumentAsImages([int page = 5]) => Future.value();

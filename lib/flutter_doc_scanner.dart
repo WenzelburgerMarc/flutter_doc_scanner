@@ -6,8 +6,8 @@ class FlutterDocScanner {
     return FlutterDocScannerPlatform.instance.getPlatformVersion();
   }
 
-  Future<dynamic> getScanDocuments({int page = 4}) {
-    return FlutterDocScannerPlatform.instance.getScanDocuments(page);
+  Future<dynamic> getScanDocuments({int page = 4, String locale = 'en'}) {
+    return FlutterDocScannerPlatform.instance.getScanDocuments(page, locale);
   }
 
   Future<dynamic> getScannedDocumentAsImages({int page = 4}) {

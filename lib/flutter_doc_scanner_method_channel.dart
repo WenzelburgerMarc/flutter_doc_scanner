@@ -17,10 +17,10 @@ class MethodChannelFlutterDocScanner extends FlutterDocScannerPlatform {
   }
 
   @override
-  Future<dynamic> getScanDocuments([int page = 1]) async {
+  Future<dynamic> getScanDocuments([int page = 1, String locale = 'en']) async {
     final data = await methodChannel.invokeMethod<dynamic>(
       'getScanDocuments',
-      {'page': page},
+      {'page': page, 'locale': locale},
     );
     return data;
   }
