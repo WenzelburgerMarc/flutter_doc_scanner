@@ -9,6 +9,8 @@ public class SwiftFlutterDocScannerPlugin: NSObject, FlutterPlugin, VNDocumentCa
    var resultChannel: FlutterResult?
    var presentingController: VNDocumentCameraViewController?
    var currentMethod: String?
+   // Store the previous AppleLanguages value to restore it later.
+   private var previousLanguages: [String]?
 
    public static func register(with registrar: FlutterPluginRegistrar) {
        let channel = FlutterMethodChannel(name: "flutter_doc_scanner", binaryMessenger: registrar.messenger())
@@ -17,6 +19,16 @@ public class SwiftFlutterDocScannerPlugin: NSObject, FlutterPlugin, VNDocumentCa
    }
 
    public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+       // Check for the locale parameter; default is "en".
+       if let args = call.arguments as? [String: Any],
+          let locale = args["locale"] as? String {
+           let languageCode = (locale == "de") ? "de" : "en"
+           // Save previous language settings.
+           previousLanguages = UserDefaults.standard.array(forKey: "AppleLanguages") as? [String]
+           UserDefaults.standard.set([languageCode], forKey: "AppleLanguages")
+           UserDefaults.standard.synchronize()
+       }
+       
        if call.method == "getScanDocuments" {
            let presentedVC: UIViewController? = UIApplication.shared.keyWindow?.rootViewController
            self.resultChannel = result
@@ -44,21 +56,25 @@ public class SwiftFlutterDocScannerPlugin: NSObject, FlutterPlugin, VNDocumentCa
        }
    }
 
-   func getDocumentsDirectory() -> URL {
-       let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
-       let documentsDirectory = paths[0]
-       return documentsDirectory
+   // Restore the previous AppleLanguages value.
+   private func restorePreviousLanguage() {
+       if let previous = previousLanguages {
+           UserDefaults.standard.set(previous, forKey: "AppleLanguages")
+           UserDefaults.standard.synchronize()
+       }
    }
 
    public func documentCameraViewController(_ controller: VNDocumentCameraViewController, didFinishWith scan: VNDocumentCameraScan) {
        if currentMethod == "getScanDocuments" {
-           saveScannedImages(scan: scan) // Uses existing logic
+           saveScannedImages(scan: scan)
        } else if currentMethod == "getScannedDocumentAsImages" {
            saveScannedImages(scan: scan)
        } else if currentMethod == "getScannedDocumentAsPdf" {
            saveScannedPdf(scan: scan)
        }
-       presentingController?.dismiss(animated: true)
+       presentingController?.dismiss(animated: true) {
+           self.restorePreviousLanguage()
+       }
    }
 
    private func saveScannedImages(scan: VNDocumentCameraScan) {
@@ -70,7 +86,7 @@ public class SwiftFlutterDocScannerPlugin: NSObject, FlutterPlugin, VNDocumentCa
        var filenames: [String] = []
        for i in 0 ..< scan.pageCount {
            let page = scan.imageOfPage(at: i)
-           let url = tempDirPath.appendingPathComponent(formattedDate + "-\(i).png")
+           let url = tempDirPath.appendingPathComponent("\(formattedDate)-\(i).png")
            try? page.pngData()?.write(to: url)
            filenames.append(url.path)
        }
@@ -103,12 +119,21 @@ public class SwiftFlutterDocScannerPlugin: NSObject, FlutterPlugin, VNDocumentCa
 
    public func documentCameraViewControllerDidCancel(_ controller: VNDocumentCameraViewController) {
        resultChannel?(nil)
-       presentingController?.dismiss(animated: true)
+       presentingController?.dismiss(animated: true) {
+           self.restorePreviousLanguage()
+       }
    }
 
    public func documentCameraViewController(_ controller: VNDocumentCameraViewController, didFailWithError error: Error) {
        resultChannel?(FlutterError(code: "SCAN_ERROR", message: "Failed to scan documents", details: error.localizedDescription))
-       presentingController?.dismiss(animated: true)
+       presentingController?.dismiss(animated: true) {
+           self.restorePreviousLanguage()
+       }
+   }
+
+   func getDocumentsDirectory() -> URL {
+       let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
+       return paths[0]
    }
 }
 
